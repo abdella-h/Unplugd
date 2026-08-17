@@ -9,9 +9,22 @@ from app.schemas.users import InitialAdminCreate
 router = APIRouter()
 
 
+@router.get("/setup/status")
+def setup_status(db: Session = Depends(get_db)):
+    admin_exists = (
+        db.query(User).filter(User.role == "admin", User.is_active == True).first()
+        is not None
+    )
+
+    return {"needs_setup": not admin_exists}
+
+
 @router.post("/setup", status_code=status.HTTP_201_CREATED)
 def setup(admin_in: InitialAdminCreate, db: Session = Depends(get_db)):
-    admin_exists = db.query(User).filter(User.role == "admin", User.is_active == True).first() is not None
+    admin_exists = (
+        db.query(User).filter(User.role == "admin", User.is_active == True).first()
+        is not None
+    )
 
     if admin_exists:
         raise HTTPException(
@@ -26,6 +39,7 @@ def setup(admin_in: InitialAdminCreate, db: Session = Depends(get_db)):
         email=admin_in.email,
         hashed_password=hash_password(admin_in.password),
         role="admin",
+        is_active=True,
     )
 
     db.add(new_user)
