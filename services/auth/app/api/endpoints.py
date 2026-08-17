@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.post("/setup", status_code=status.HTTP_201_CREATED)
 def setup(admin_in: InitialAdminCreate, db: Session = Depends(get_db)):
-    admin_exists = db.query(User).filter(User.role == "admin").first() is not None
+    admin_exists = db.query(User).filter(User.role == "admin", User.is_active == True).first() is not None
 
     if admin_exists:
         raise HTTPException(
