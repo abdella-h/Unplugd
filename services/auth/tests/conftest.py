@@ -44,3 +44,22 @@ def db_session():
         yield db
     finally:
         db.close()
+
+
+@pytest.fixture
+def admin_setup_payload():
+    return {
+        "first_name": "Adamin",
+        "last_name": "Admin",
+        "username": "admin",
+        "email": "admin@gmail.com",
+        "password": "secret",
+    }
+
+
+@pytest.fixture
+def admin_login_credentials():
+    return {
+        "username": "admin",
+        "password": "secret",
+    }
