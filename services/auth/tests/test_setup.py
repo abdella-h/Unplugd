@@ -1,16 +1,8 @@
 from app.models.users import User
 
-ADMIN_PAYLOAD = {
-    "first_name": "Adamin",
-    "last_name": "Admin",
-    "username": "admin",
-    "email": "admin@gmail.com",
-    "password": "secret",
-}
 
-
-def test_setup_creates_admin(client, db_session):
-    r = client.post("/setup", json=ADMIN_PAYLOAD)
+def test_setup_creates_admin(client, db_session, admin_setup_payload):
+    r = client.post("/setup", json=admin_setup_payload)
     assert r.status_code == 201
     assert r.json()["message"] == "User created"
 
@@ -20,7 +12,7 @@ def test_setup_creates_admin(client, db_session):
     assert user.is_active is True
 
 
-def test_setup__when_admin_exists(client):
-    client.post("/setup", json=ADMIN_PAYLOAD)
-    r = client.post("/setup", json=ADMIN_PAYLOAD)
+def test_setup__when_admin_exists(client, admin_setup_payload):
+    client.post("/setup", json=admin_setup_payload)
+    r = client.post("/setup", json=admin_setup_payload)
     assert r.status_code == 409
