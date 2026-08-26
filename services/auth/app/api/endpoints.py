@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, REFRESH_TOKEN_TTL_SECONDS
 from app.models.users import User
 from app.schemas.users import InitialAdminCreate, UserLogin
 
@@ -51,7 +51,7 @@ def setup(admin_in: InitialAdminCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", status_code=status.HTTP_200_OK)
-def user_login(login_cred: UserLogin, db: Session = Depends(get_db)):
+def user_login(response: Response, login_cred: UserLogin, db: Session = Depends(get_db)):
     user = (
         db.query(User)
         .filter(User.username == login_cred.username, User.is_active == True)
@@ -63,5 +63,20 @@ def user_login(login_cred: UserLogin, db: Session = Depends(get_db)):
     payload = {"sub": user.username, "role": user.role}
 
     access_token = create_access_token(payload=payload)
+
+
+    refresh_token = create_refresh_token(db, user.id)
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=REFRESH_TOKEN_TTL_SECONDS,
+        path="/",
+    )
+
+
 
     return {"access_token": access_token, "token_type": "Bearer"}
