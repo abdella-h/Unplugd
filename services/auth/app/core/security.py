@@ -1,15 +1,17 @@
+import hashlib
 import os
-import secrets, hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
-from sqlalchemy.orm import Session
 
 import bcrypt
 import jwt
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+
 from app.models.refresh_tokens import RefreshToken
 
 REFRESH_TOKEN_TTL_DAYS = 7
-REFRESH_TOKEN_TTL_SECONDS = REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 
+REFRESH_TOKEN_TTL_SECONDS = REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60
 
 load_dotenv()
 
@@ -39,16 +41,18 @@ def create_access_token(payload: dict) -> str:
     return jwt.encode(payload_to_encode, SECRET_KEY, ALGORITHM)
 
 
-def create_refresh_token(db: Session, user_id: int):
+def create_refresh_token(db: Session, user_id: int, expires_at: datetime | None = None):
     raw_token = secrets.token_urlsafe(32)
 
     token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
 
-    
+    if expires_at is None:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_TTL_DAYS)
+
     refresh_token = RefreshToken(
         user_id=user_id,
         hashed_token=token_hash,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_TTL_DAYS),
+        expires_at=expires_at,
     )
 
     db.add(refresh_token)
@@ -56,5 +60,3 @@ def create_refresh_token(db: Session, user_id: int):
     db.refresh(refresh_token)
 
     return raw_token
-
-    
