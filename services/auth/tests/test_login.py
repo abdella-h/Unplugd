@@ -9,3 +9,5 @@ def test_login(client, db_session, admin_setup_payload, admin_login_credentials)
 
     assert "access_token" in body
     assert body["token_type"] == "Bearer"
+
+    assert "refresh_token" in r.cookies
