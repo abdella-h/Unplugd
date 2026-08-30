@@ -11,3 +11,11 @@ def test_login(client, db_session, admin_setup_payload, admin_login_credentials)
     assert body["token_type"] == "Bearer"
 
     assert "refresh_token" in r.cookies
+
+
+def test_login_wrong_password(client, admin_setup_payload):
+    client.post("/setup", json=admin_setup_payload)
+
+    r = client.post("/login", json={"username": "admin", "password": "wrong-password"})
+    assert r.status_code == 401
+    assert r.json()["detail"] == "Invalid username or password"
