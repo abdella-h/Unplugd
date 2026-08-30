@@ -19,3 +19,9 @@ def test_login_wrong_password(client, admin_setup_payload):
     r = client.post("/login", json={"username": "admin", "password": "wrong-password"})
     assert r.status_code == 401
     assert r.json()["detail"] == "Invalid username or password"
+
+
+def test_login_unknown_user(client):
+    r = client.post("/login", json={"username": "user", "password": "password"})
+    assert r.status_code == 401
+    assert r.json()["detail"] == "Invalid username or password"
