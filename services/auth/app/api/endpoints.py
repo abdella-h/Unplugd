@@ -60,7 +60,9 @@ def setup(admin_in: InitialAdminCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", status_code=status.HTTP_200_OK)
-def user_login(response: Response, login_cred: UserLogin, db: Session = Depends(get_db)):
+def user_login(
+    response: Response, login_cred: UserLogin, db: Session = Depends(get_db)
+):
     user = (
         db.query(User)
         .filter(User.username == login_cred.username, User.is_active == True)
@@ -73,7 +75,6 @@ def user_login(response: Response, login_cred: UserLogin, db: Session = Depends(
 
     access_token = create_access_token(payload=payload)
 
-
     refresh_token = create_refresh_token(db, user.id)
 
     response.set_cookie(
@@ -85,8 +86,6 @@ def user_login(response: Response, login_cred: UserLogin, db: Session = Depends(
         max_age=REFRESH_TOKEN_TTL_SECONDS,
         path="/",
     )
-
-
 
     return {"access_token": access_token, "token_type": "Bearer"}
 
@@ -101,7 +100,9 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
 
     token_hash = hashlib.sha256(token.encode()).hexdigest()
 
-    refresh_token = db.query(RefreshToken).filter(RefreshToken.hashed_token == token_hash).first()
+    refresh_token = (
+        db.query(RefreshToken).filter(RefreshToken.hashed_token == token_hash).first()
+    )
     if not refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
@@ -129,7 +130,6 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
-    # the bound user must still be active with a valid role (closure check)
     user = db.query(User).filter(User.id == refresh_token.user_id).first()
     if not user or not user.is_active:
         raise HTTPException(
@@ -140,15 +140,12 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
-    # consume the presented token (rotation per ADR-0004 §2)
     refresh_token.rotated_at = now
 
-    # issue a fresh access token with scoping claims (ADR-0003 §1)
     new_access_token = create_access_token(
         payload={"sub": user.username, "role": user.role, "dc_id": user.datacenter_id}
     )
 
-    # issue a new refresh token, inheriting the original 7-day deadline (ADR-0004 §4)
     new_refresh_token = create_refresh_token(db, user.id, expires_at=expires_at)
 
     response.set_cookie(
@@ -163,3 +160,39 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
 
     return {"access_token": new_access_token, "token_type": "Bearer"}
 
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+    db_token = (
+        db.query(RefreshToken).filter(RefreshToken.hashed_token == token_hash).first()
+    )
+    if not db_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+
+    if db_token.revoked_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+
+    db_token.revoked_at = datetime.now(timezone.utc)
+    db.commit()
+
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+        httponly=True,
+        secure=True,
+        samesite="strict",
+    )
+
+    return {"message": "Logged out"}
