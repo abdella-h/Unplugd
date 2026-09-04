@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import COOKIE_SECURE
 from app.models.refresh_tokens import RefreshToken
 
 router = APIRouter()
@@ -40,7 +41,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
         key="refresh_token",
         path="/",
         httponly=True,
-        secure=True,
+        secure=COOKIE_SECURE,
         samesite="strict",
     )
 

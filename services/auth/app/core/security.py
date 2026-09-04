@@ -21,6 +21,8 @@ if not SECRET_KEY:
 
 ALGORITHM = "HS256"
 
+COOKIE_SECURE = os.getenv("COOKIE_SECURE")
+
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")

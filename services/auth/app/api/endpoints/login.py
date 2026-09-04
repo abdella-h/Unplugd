@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import (
+    COOKIE_SECURE,
     REFRESH_TOKEN_TTL_SECONDS,
     create_access_token,
     create_refresh_token,
@@ -36,7 +37,7 @@ def user_login(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,
+        secure=COOKIE_SECURE,
         samesite="strict",
         max_age=REFRESH_TOKEN_TTL_SECONDS,
         path="/",

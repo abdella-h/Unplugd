@@ -5,7 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import (
+    COOKIE_SECURE,
+    create_access_token,
+    create_refresh_token,
+)
 from app.models.refresh_tokens import RefreshToken
 from app.models.users import User
 
@@ -32,7 +36,6 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
 
     now = datetime.now(timezone.utc)
 
-    # normalize SQLite naive datetimes to UTC-aware before comparison
     expires_at = refresh_token.expires_at
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
@@ -74,7 +77,7 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        secure=True,
+        secure=COOKIE_SECURE,
         samesite="strict",
         max_age=int((expires_at - now).total_seconds()),
         path="/",
