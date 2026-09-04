@@ -15,6 +15,15 @@ services:
             - "8000:8000"
         depends_on:
             - auth_db
+        develop:
+            watch:
+                - action: sync+restart
+                  path: ./auth/app
+                  target: /auth/app
+                - action: rebuild
+                  path: ./auth/requirements.txt
+                - action: rebuild
+                  path: ./auth/dockerfile
 
 volumes:
     auth_db_data:
