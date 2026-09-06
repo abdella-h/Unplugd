@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-import app.models.users
+import app.models
 from app.api.endpoints import router
 from app.core.database import Base, engine
 
