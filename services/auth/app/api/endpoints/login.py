@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
@@ -27,7 +29,17 @@ def user_login(
     if not user or not verify_password(login_cred.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
-    payload = {"sub": user.username, "role": user.role}
+    if user.role not in ("admin", "operator"):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    user.last_login_at = datetime.now(timezone.utc)
+    db.commit()
+
+    payload = {
+        "sub": user.username,
+        "role": user.role,
+        "dc_id": user.datacenter_id,
+    }
 
     access_token = create_access_token(payload=payload)
 
