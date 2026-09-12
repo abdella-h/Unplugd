@@ -41,3 +41,20 @@ def require_global_admin(token_data: dict = Depends(get_current_user)):
             detail="Global admin access required",
         )
     return token_data
+
+
+def require_admin(token_data: dict = Depends(get_current_user)):
+    if token_data["role"] != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return token_data
+
+
+def ensure_device_scope(admin: dict, datacenter_id: int):
+    if admin["dc_id"] is not None and admin["dc_id"] != datacenter_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Device outside your datacenter scope",
+        )

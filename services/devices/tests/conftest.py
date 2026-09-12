@@ -30,6 +30,26 @@ def make_token(role="admin", dc_id=None, username="admin"):
     return jwt.encode(payload, SECRET_KEY, ALGORITHM)
 
 
+def global_admin_headers():
+    return {"Authorization": f"Bearer {make_token(role='admin', dc_id=None)}"}
+
+
+def per_dc_admin_headers(dc_id):
+    return {"Authorization": f"Bearer {make_token(role='admin', dc_id=dc_id)}"}
+
+
+def operator_headers(dc_id):
+    return {"Authorization": f"Bearer {make_token(role='operator', dc_id=dc_id)}"}
+
+
+def create_datacenter(client, headers, name="dc-ams", location="Amsterdam"):
+    return client.post(
+        "/datacenters",
+        json={"name": name, "location": location},
+        headers=headers,
+    )
+
+
 @pytest.fixture
 def client():
     Base.metadata.create_all(bind=engine)
