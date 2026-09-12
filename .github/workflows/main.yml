@@ -1,20 +1,20 @@
 name: CI
 
-on: 
-  pull_request:       
-    branches: [main]        
+on:
+  pull_request:
+    branches: [main]
 
 jobs:
-  test:
+  test-auth:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: "sqlite://"
     defaults:
       run:
-        working-directory: services/auth   
+        working-directory: services/auth
 
     steps:
-      - uses: actions/checkout@v4            
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,5 +26,29 @@ jobs:
 
       - name: Run tests
         env:
-          SECRET_KEY : ${{secrets.SECRET_KEY}}
+          SECRET_KEY: ${{secrets.SECRET_KEY}}
+        run: python -m pytest tests -v
+
+  test-devices:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "sqlite://"
+    defaults:
+      run:
+        working-directory: services/devices
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          SECRET_KEY: ${{secrets.SECRET_KEY}}
         run: python -m pytest tests -v
