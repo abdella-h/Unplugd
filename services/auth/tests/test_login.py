@@ -66,9 +66,39 @@ def test_login_access_token_claims(
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     assert payload["sub"] == "admin"
     assert payload["role"] == "admin"
+    assert payload["dc_id"] is None
     assert "exp" in payload
 
     exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
     now = datetime.now(timezone.utc)
     delta = (exp - now).total_seconds()
     assert 14 * 60 <= delta <= 16 * 60
+
+
+def test_login_invalid_role_refused(
+    client, db_session, admin_setup_payload, admin_login_credentials
+):
+    client.post("/setup", json=admin_setup_payload)
+
+    user = db_session.query(User).filter(User.username == "admin").first()
+    user.role = "guard"
+    db_session.commit()
+
+    r = client.post("/login", json=admin_login_credentials)
+    assert r.status_code == 401
+    assert r.json()["detail"] == "Invalid username or password"
+
+
+def test_login_updates_last_login(
+    client, db_session, admin_setup_payload, admin_login_credentials
+):
+    client.post("/setup", json=admin_setup_payload)
+
+    user = db_session.query(User).filter(User.username == "admin").first()
+    assert user.last_login_at is None
+
+    r = client.post("/login", json=admin_login_credentials)
+    assert r.status_code == 200
+
+    db_session.refresh(user)
+    assert user.last_login_at is not None
