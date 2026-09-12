@@ -9,6 +9,16 @@ services:
             - "5432:5432"
         volumes:
             - auth_db_data:/var/lib/postgresql/data
+    devices_db:
+        image: postgres:13
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${DEVICES_DB_NAME:-devices_db}
+        ports:
+            - "5433:5432"
+        volumes:
+            - devices_db_data:/var/lib/postgresql/data
     auth-service:
         build: ./auth
         ports:
@@ -24,10 +34,25 @@ services:
                   path: ./auth/requirements.txt
                 - action: rebuild
                   path: ./auth/dockerfile
+    devices-service:
+        build: ./devices
+        ports:
+            - "8001:8000"
+        environment:
+            DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@devices_db:5432/${DEVICES_DB_NAME:-devices_db}
+            SECRET_KEY: ${SECRET_KEY}
+        depends_on:
+            - devices_db
+        develop:
+            watch:
+                - action: sync+restart
+                  path: ./devices/app
+                  target: /devices/app
+                - action: rebuild
+                  path: ./devices/requirements.txt
+                - action: rebuild
+                  path: ./devices/dockerfile
 
 volumes:
     auth_db_data:
-
-    
-   
-    
+    devices_db_data:
