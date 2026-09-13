@@ -1,11 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import ensure_device_scope, require_admin
+from app.api.deps import ensure_device_scope, require_admin, require_scoped_user
 from app.core.database import get_db
 from app.models.datacenters import Datacenter
 from app.models.devices import Device
-from app.schemas.devices import DeviceCreate, DeviceRead, DeviceUpdate
+from app.schemas.devices import (
+    DeviceCreate,
+    DeviceRead,
+    DeviceStateUpdate,
+    DeviceUpdate,
+)
 
 router = APIRouter()
 
@@ -76,28 +81,46 @@ def create_device(
 @router.get("/devices", response_model=list[DeviceRead])
 def list_devices(
     db: Session = Depends(get_db),
-    admin: dict = Depends(require_admin),
+    user: dict = Depends(require_scoped_user),
 ):
     query = db.query(Device)
-    if admin["dc_id"] is not None:
-        query = query.filter(Device.datacenter_id == admin["dc_id"])
+    if user["dc_id"] is not None:
+        query = query.filter(Device.datacenter_id == user["dc_id"])
     return query.all()
 
 
-@router.get("/devices/{device_id}", response_model=DeviceRead)
-def read_device(
-    device_id: int,
-    db: Session = Depends(get_db),
-    admin: dict = Depends(require_admin),
-):
+def _get_scoped_device_or_404(db: Session, device_id: int, user: dict) -> Device:
     device = db.query(Device).filter(Device.id == device_id).first()
     if not device:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Device not found",
         )
+    ensure_device_scope(user, device.datacenter_id)
+    return device
 
-    ensure_device_scope(admin, device.datacenter_id)
+
+@router.get("/devices/{device_id}", response_model=DeviceRead)
+def read_device(
+    device_id: int,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_scoped_user),
+):
+    return _get_scoped_device_or_404(db, device_id, user)
+
+
+@router.put("/devices/{device_id}/state", response_model=DeviceRead)
+def report_device_state(
+    device_id: int,
+    state_in: DeviceStateUpdate,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_scoped_user),
+):
+    device = _get_scoped_device_or_404(db, device_id, user)
+
+    setattr(device, "state", state_in.state)
+    db.commit()
+    db.refresh(device)
     return device
 
 
@@ -108,14 +131,7 @@ def update_device(
     db: Session = Depends(get_db),
     admin: dict = Depends(require_admin),
 ):
-    device = db.query(Device).filter(Device.id == device_id).first()
-    if not device:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Device not found",
-        )
-
-    ensure_device_scope(admin, device.datacenter_id)
+    device = _get_scoped_device_or_404(db, device_id, admin)
 
     update_data = device_in.model_dump(exclude_unset=True)
 
@@ -142,14 +158,7 @@ def delete_device(
     db: Session = Depends(get_db),
     admin: dict = Depends(require_admin),
 ):
-    device = db.query(Device).filter(Device.id == device_id).first()
-    if not device:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Device not found",
-        )
-
-    ensure_device_scope(admin, device.datacenter_id)
+    device = _get_scoped_device_or_404(db, device_id, admin)
 
     db.delete(device)
     db.commit()

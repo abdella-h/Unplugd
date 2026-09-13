@@ -52,6 +52,16 @@ def require_admin(token_data: dict = Depends(get_current_user)):
     return token_data
 
 
+def require_scoped_user(token_data: dict = Depends(get_current_user)):
+    """Any authenticated user; operators must be datacenter-scoped."""
+    if token_data["role"] == "operator" and token_data["dc_id"] is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operator must be assigned to a datacenter",
+        )
+    return token_data
+
+
 def ensure_device_scope(admin: dict, datacenter_id: int):
     if admin["dc_id"] is not None and admin["dc_id"] != datacenter_id:
         raise HTTPException(

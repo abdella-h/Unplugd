@@ -235,9 +235,11 @@ def test_list_devices_per_dc_admin_sees_only_own_dc(client):
     assert names == ["srv-02", "srv-03"]
 
 
-def test_list_devices_operator_forbidden(client):
+def test_list_devices_operator_scoped_to_own_datacenter(client):
+    # Operators may list, but only devices in their own datacenter.
     r = client.get("/devices", headers=operator_headers(1))
-    assert r.status_code == 403
+    assert r.status_code == 200
+    assert all(d["datacenter_id"] == 1 for d in r.json())
 
 
 def test_list_devices_anonymous_unauthorized(client):
@@ -274,11 +276,6 @@ def test_read_device_per_dc_admin_other_dc_forbidden(client):
 def test_read_device_not_found(client):
     r = client.get("/devices/999", headers=global_admin_headers())
     assert r.status_code == 404
-
-
-def test_read_device_operator_forbidden(client):
-    r = client.get("/devices/1", headers=operator_headers(1))
-    assert r.status_code == 403
 
 
 def test_read_device_anonymous_unauthorized(client):
