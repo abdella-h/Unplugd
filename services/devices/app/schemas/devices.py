@@ -30,6 +30,12 @@ class DeviceRead(BaseModel):
     updated_at: datetime | None = None
 
 
+class DeviceStateUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    state: DeviceState
+
+
 class DeviceUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
