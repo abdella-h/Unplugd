@@ -39,7 +39,7 @@ def per_dc_admin_headers(dc_id):
 
 
 def operator_headers(dc_id):
-    return {"Authorization": f"Bearer {make_token(role='operator', dc_id=dc_id)}"}
+    return {"Authorization": f"Bearer {make_token(role='operator', dc_id=dc_id, username='operator')}"}
 
 
 def create_datacenter(client, headers, name="dc-ams", location="Amsterdam"):

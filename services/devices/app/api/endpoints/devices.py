@@ -1,8 +1,20 @@
+import logging
+from datetime import datetime, timezone
+from typing import cast
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import ensure_device_scope, require_admin, require_scoped_user
+from app.api.deps import (
+    ensure_device_scope,
+    get_state_publisher,
+    require_admin,
+    require_scoped_user,
+)
+from app.core.broker import StatePublisher
 from app.core.database import get_db
+from app.core.device_state import DeviceState
+from app.core.events import DeviceStateChanged
 from app.models.datacenters import Datacenter
 from app.models.devices import Device
 from app.schemas.devices import (
@@ -12,7 +24,33 @@ from app.schemas.devices import (
     DeviceUpdate,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+
+def _publish_state_change(
+    device: Device, old_state: DeviceState, reporter: str, publisher: StatePublisher
+):
+    if device.state == old_state:
+        return
+    event = DeviceStateChanged(
+        device_id=cast(int, device.id),
+        datacenter_id=cast(int, device.datacenter_id),
+        old_state=old_state,
+        new_state=cast(DeviceState, device.state),
+        reporter=reporter,
+        occurred_at=datetime.now(timezone.utc),
+    )
+    try:
+        publisher.publish_device_state_changed(event)
+    except Exception:  # noqa: BLE001  best-effort: broker outage must never block reporting
+        logger.warning(
+            "Broker publish failed for device %s state change (%s -> %s); state persisted without event",
+            device.id,
+            old_state,
+            device.state,
+        )
 
 
 def _ensure_unique_in_dc(
@@ -115,12 +153,15 @@ def report_device_state(
     state_in: DeviceStateUpdate,
     db: Session = Depends(get_db),
     user: dict = Depends(require_scoped_user),
+    publisher: StatePublisher = Depends(get_state_publisher),
 ):
     device = _get_scoped_device_or_404(db, device_id, user)
 
+    old_state = cast(DeviceState, device.state)
     setattr(device, "state", state_in.state)
     db.commit()
     db.refresh(device)
+    _publish_state_change(device, old_state, user["username"], publisher)
     return device
 
 
@@ -130,6 +171,7 @@ def update_device(
     device_in: DeviceUpdate,
     db: Session = Depends(get_db),
     admin: dict = Depends(require_admin),
+    publisher: StatePublisher = Depends(get_state_publisher),
 ):
     device = _get_scoped_device_or_404(db, device_id, admin)
 
@@ -143,12 +185,14 @@ def update_device(
         exclude_id=device_id,
     )
 
+    old_state = cast(DeviceState, device.state)
     for field in ("name", "type", "description", "serial_number", "state"):
         if field in update_data:
             setattr(device, field, update_data[field])
 
     db.commit()
     db.refresh(device)
+    _publish_state_change(device, old_state, admin["username"], publisher)
     return device
 
 
