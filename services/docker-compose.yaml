@@ -19,6 +19,14 @@ services:
             - "5433:5432"
         volumes:
             - devices_db_data:/var/lib/postgresql/data
+    rabbitmq:
+        image: rabbitmq:3-management
+        environment:
+            RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+            RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+        ports:
+            - "5672:5672"
+            - "15672:15672"
     auth-service:
         build: ./auth
         ports:
@@ -41,8 +49,10 @@ services:
         environment:
             DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@devices_db:5432/${DEVICES_DB_NAME:-devices_db}
             SECRET_KEY: ${SECRET_KEY}
+            BROKER_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
         depends_on:
             - devices_db
+            - rabbitmq
         develop:
             watch:
                 - action: sync+restart

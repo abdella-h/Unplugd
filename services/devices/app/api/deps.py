@@ -2,6 +2,7 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.core.broker import RabbitMQStatePublisher, StatePublisher
 from app.core.security import ALGORITHM, SECRET_KEY, VALID_ROLES
 
 bearer = HTTPBearer()
@@ -60,6 +61,13 @@ def require_scoped_user(token_data: dict = Depends(get_current_user)):
             detail="Operator must be assigned to a datacenter",
         )
     return token_data
+
+
+_state_publisher = RabbitMQStatePublisher()
+
+
+def get_state_publisher() -> StatePublisher:
+    return _state_publisher
 
 
 def ensure_device_scope(admin: dict, datacenter_id: int):
