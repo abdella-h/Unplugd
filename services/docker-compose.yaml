@@ -19,6 +19,16 @@ services:
             - "5433:5432"
         volumes:
             - devices_db_data:/var/lib/postgresql/data
+    dashboard_db:
+        image: postgres:13
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${DASHBOARD_DB_NAME:-dashboard_db}
+        ports:
+            - "5434:5432"
+        volumes:
+            - dashboard_db_data:/var/lib/postgresql/data
     rabbitmq:
         image: rabbitmq:3-management
         environment:
@@ -62,7 +72,30 @@ services:
                   path: ./devices/requirements.txt
                 - action: rebuild
                   path: ./devices/dockerfile
+    dashboard-service:
+        build: ./dashboard
+        ports:
+            - "8002:8000"
+        environment:
+            DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@dashboard_db:5432/${DASHBOARD_DB_NAME:-dashboard_db}
+            SECRET_KEY: ${SECRET_KEY}
+            BROKER_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/
+            DEVICES_SERVICE_URL: http://devices-service:8000
+        depends_on:
+            - dashboard_db
+            - rabbitmq
+            - devices-service
+        develop:
+            watch:
+                - action: sync+restart
+                  path: ./dashboard/app
+                  target: /dashboard/app
+                - action: rebuild
+                  path: ./dashboard/requirements.txt
+                - action: rebuild
+                  path: ./dashboard/dockerfile
 
 volumes:
     auth_db_data:
     devices_db_data:
+    dashboard_db_data:
