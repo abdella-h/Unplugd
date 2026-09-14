@@ -94,6 +94,20 @@ services:
                   path: ./dashboard/requirements.txt
                 - action: rebuild
                   path: ./dashboard/dockerfile
+    frontend:
+        build: ../frontend
+        ports:
+            - "3000:3000"
+        depends_on:
+            - auth-service
+            - devices-service
+            - dashboard-service
+        develop:
+            watch:
+                - action: rebuild
+                  path: ../frontend/package-lock.json
+                - action: rebuild
+                  path: ../frontend/dockerfile
 
 volumes:
     auth_db_data:

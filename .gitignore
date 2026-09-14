@@ -10,3 +10,9 @@ __pycache__/
 .claude/
 .opencode/
 CLAUDE.md
+
+# Frontend (Nuxt)
+node_modules/
+.nuxt/
+.output/
+dist/

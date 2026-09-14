@@ -1,0 +1,8 @@
+{
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    // .nuxt/tsconfig.json sets "types": [], so @types/node globals
+    // (process.env in nuxt.config.ts) need an explicit opt-in here.
+    "types": ["node"]
+  }
+}

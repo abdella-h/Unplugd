@@ -31,10 +31,12 @@ class EventHub:
         try:
             loop: asyncio.AbstractEventLoop | None = asyncio.get_running_loop()
         except RuntimeError:
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = None
+            # No running loop (sync endpoint, TestClient, or plain thread):
+            # store None so broadcast() delivers directly instead of
+            # scheduling onto a stale get_event_loop() loop that never runs
+            # (on Python 3.12 get_event_loop() still returns such a loop
+            # with a DeprecationWarning; on 3.14+ it raises, i.e. None).
+            loop = None
         self._subscribers[queue] = loop
         return queue
 
