@@ -75,7 +75,7 @@ services:
     dashboard-service:
         build: ./dashboard
         ports:
-            - "8002:8000"
+            - "8002:8002"
         environment:
             DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@dashboard_db:5432/${DASHBOARD_DB_NAME:-dashboard_db}
             SECRET_KEY: ${SECRET_KEY}
