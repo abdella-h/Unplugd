@@ -3,6 +3,7 @@ const auth = useAuth()
 
 const links = computed(() => {
   const items = [
+    { label: 'Overview', to: '/' },
     { label: 'Devices', to: '/devices' },
   ]
   if (auth.isAdmin.value) {
