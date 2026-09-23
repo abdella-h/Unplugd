@@ -18,7 +18,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-DEVICES_SERVICE_URL = os.getenv("DEVICES_SERVICE_URL", "http://localhost:8001")
+DEVICES_SERVICE_URL = os.getenv("DEVICES_SERVICE_URL", "http://localhost:8004")
 
 router = APIRouter()
 

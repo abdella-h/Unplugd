@@ -6,7 +6,7 @@
 // NUXT_*_API_URL vars to the compose service names (see frontend/dockerfile).
 const authApi = process.env.NUXT_AUTH_API_URL ?? 'http://localhost:8000'
 const devicesApi =
-  process.env.NUXT_DEVICES_API_URL ?? 'http://localhost:8001'
+  process.env.NUXT_DEVICES_API_URL ?? 'http://localhost:8004'
 const dashboardApi =
   process.env.NUXT_DASHBOARD_API_URL ?? 'http://localhost:8002'
 
