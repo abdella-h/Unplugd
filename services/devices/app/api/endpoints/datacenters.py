@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_global_admin
+from app.api.deps import require_global_admin, require_scoped_user
 from app.core.database import get_db
 from app.models.datacenters import Datacenter
 from app.models.devices import Device
@@ -40,9 +40,12 @@ def create_datacenter(
 )
 def list_datacenters(
     db: Session = Depends(get_db),
-    admin: dict = Depends(require_global_admin),
+    user: dict = Depends(require_scoped_user),
 ):
-    return db.query(Datacenter).all()
+    query = db.query(Datacenter)
+    if user["dc_id"] is not None:
+        query = query.filter(Datacenter.id == user["dc_id"])
+    return query.all()
 
 
 @router.get(

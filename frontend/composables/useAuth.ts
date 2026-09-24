@@ -7,6 +7,10 @@ interface JwtClaims {
   exp: number
 }
 
+let refreshInFlight: Promise<boolean> | null = null
+let refreshAbortController: AbortController | null = null
+let authGeneration = 0
+
 function decodeClaims(token: string): JwtClaims | null {
   try {
     const payload = token.split('.')[1]
@@ -31,8 +35,10 @@ export const useAuth = () => {
   const accessToken = useState<string | null>('auth:token', () => null)
   const user = useState<User | null>('auth:user', () => null)
   const ready = useState<boolean>('auth:ready', () => false)
+  const sessionEpoch = useState<number>('auth:session-epoch', () => 0)
 
   const setToken = (token: string | null) => {
+    authGeneration += 1
     accessToken.value = token
     const claims = token ? decodeClaims(token) : null
     user.value = claims
@@ -41,34 +47,65 @@ export const useAuth = () => {
   }
 
   const login = async (username: string, password: string) => {
+    authGeneration += 1
+    const requestGeneration = authGeneration
+    const pendingRefresh = refreshInFlight
+    refreshAbortController?.abort()
+    refreshAbortController = null
+    refreshInFlight = null
+    if (pendingRefresh) await pendingRefresh
     const res = await $fetch<{ access_token: string }>('/api/auth/login', {
       method: 'POST',
       body: { username, password },
     })
+    if (requestGeneration !== authGeneration) return
+    sessionEpoch.value += 1
     setToken(res.access_token)
   }
 
   /** Silently exchange the refresh cookie for an access token. */
   const refresh = async (): Promise<boolean> => {
+    if (refreshInFlight) return refreshInFlight
+    const requestGeneration = authGeneration
+    const controller = new AbortController()
+    refreshAbortController = controller
+    const request = (async () => {
+      try {
+        const res = await $fetch<{ access_token: string }>('/api/auth/refresh', {
+          method: 'POST',
+          signal: controller.signal,
+        })
+        if (requestGeneration !== authGeneration) return false
+        setToken(res.access_token)
+        return true
+      } catch {
+        if (requestGeneration === authGeneration) setToken(null)
+        return false
+      }
+    })()
+    refreshInFlight = request
     try {
-      const res = await $fetch<{ access_token: string }>('/api/auth/refresh', {
-        method: 'POST',
-      })
-      setToken(res.access_token)
-      return true
-    } catch {
-      setToken(null)
-      return false
+      return await request
+    } finally {
+      if (refreshAbortController === controller) refreshAbortController = null
+      if (refreshInFlight === request) refreshInFlight = null
     }
   }
 
   const logout = async () => {
+    authGeneration += 1
+    sessionEpoch.value += 1
+    setToken(null)
+    const pendingRefresh = refreshInFlight
+    refreshAbortController?.abort()
+    refreshAbortController = null
+    refreshInFlight = null
+    if (pendingRefresh) await pendingRefresh
     try {
       await $fetch('/api/auth/logout', { method: 'POST' })
     } catch {
       // Best-effort: clear local state regardless.
     }
-    setToken(null)
     await navigateTo('/login')
   }
 
@@ -89,6 +126,7 @@ export const useAuth = () => {
     accessToken: readonly(accessToken),
     user: readonly(user),
     ready: readonly(ready),
+    sessionEpoch: readonly(sessionEpoch),
     isAdmin,
     isGlobalAdmin,
     login,

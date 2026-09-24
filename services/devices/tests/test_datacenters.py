@@ -1,4 +1,3 @@
-from app.models.devices import Device
 from conftest import (
     create_datacenter,
     global_admin_headers,
@@ -6,6 +5,8 @@ from conftest import (
     operator_headers,
     per_dc_admin_headers,
 )
+
+from app.models.devices import Device
 
 DC_PAYLOAD = {"name": "dc-ams", "location": "Amsterdam"}
 
@@ -145,9 +146,6 @@ def test_delete_datacenter_not_found(client):
     assert r.status_code == 404
 
 
-# --- Authorization: all endpoints require global admin ---
-
-
 def test_create_datacenter_per_dc_admin_forbidden(client):
     r = create_datacenter(client, per_dc_admin_headers(3), **DC_PAYLOAD)
     assert r.status_code == 403
@@ -163,14 +161,69 @@ def test_create_datacenter_anonymous_unauthorized(client):
     assert r.status_code == 401
 
 
-def test_list_datacenters_per_dc_admin_forbidden(client):
-    r = client.get("/datacenters", headers=per_dc_admin_headers(3))
+def test_list_datacenters_per_dc_admin_sees_only_own_datacenter(client):
+    global_headers = global_admin_headers()
+    dc1 = create_datacenter(
+        client, global_headers, name="dc-ams", location="Amsterdam"
+    ).json()["id"]
+    dc2 = create_datacenter(
+        client, global_headers, name="dc-ber", location="Berlin"
+    ).json()["id"]
+
+    r = client.get("/datacenters", headers=per_dc_admin_headers(dc1))
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert len(body) == 1
+    assert body[0]["id"] == dc1
+    assert dc2 != body[0]["id"]
+
+
+def test_list_datacenters_operator_sees_only_own_datacenter(client):
+    global_headers = global_admin_headers()
+    dc1 = create_datacenter(
+        client, global_headers, name="dc-ams", location="Amsterdam"
+    ).json()["id"]
+    create_datacenter(
+        client, global_headers, name="dc-ber", location="Berlin"
+    )
+
+    r = client.get("/datacenters", headers=operator_headers(dc1))
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert len(body) == 1
+    assert body[0]["id"] == dc1
+
+
+def test_list_datacenters_unscoped_operator_forbidden(client):
+    r = client.get("/datacenters", headers=operator_headers(None))
     assert r.status_code == 403
 
 
-def test_list_datacenters_operator_forbidden(client):
-    r = client.get("/datacenters", headers=operator_headers(3))
-    assert r.status_code == 403
+def test_datacenter_mutations_remain_global_admin_only(client):
+    global_headers = global_admin_headers()
+    dc1 = create_datacenter(
+        client, global_headers, name="dc-ams", location="Amsterdam"
+    ).json()["id"]
+    create_datacenter(
+        client, global_headers, name="dc-ber", location="Berlin"
+    )
+
+    for headers in (per_dc_admin_headers(dc1), operator_headers(dc1)):
+        responses = [
+            client.post(
+                "/datacenters",
+                json={"name": "dc-new", "location": "Utrecht"},
+                headers=headers,
+            ),
+            client.patch(
+                f"/datacenters/{dc1}",
+                json={"location": "Rotterdam"},
+                headers=headers,
+            ),
+            client.delete(f"/datacenters/{dc1}", headers=headers),
+        ]
+        for r in responses:
+            assert r.status_code == 403, (r.request.method, r.request.url, r.text)
 
 
 def test_list_datacenters_anonymous_unauthorized(client):
