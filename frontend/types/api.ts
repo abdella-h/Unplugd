@@ -11,6 +11,17 @@ export interface User {
   dcId: number | null
 }
 
+export interface UserProfile {
+  first_name: string | null
+  last_name: string | null
+  username: string
+  email: string
+  role: Role
+  datacenter_id: number | null
+  is_active: boolean
+  last_login_at: string | null
+}
+
 export interface Datacenter {
   id: number
   name: string

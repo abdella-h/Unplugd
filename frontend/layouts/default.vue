@@ -3,11 +3,13 @@ import type { StreamEvent } from '~/types/api'
 
 const auth = useAuth()
 const workspace = useWorkspace()
+const profile = useUserProfile()
 const realtime = useRealtime()
 const toast = useToast()
 const mobileNavigationOpen = useState<boolean>('shell:mobile-navigation-open', () => false)
 
 onMounted(() => {
+  void profile.load()
   void workspace.refresh()
   void realtime.connect()
 })
@@ -22,10 +24,12 @@ watch(
   (identity, previousIdentity) => {
     const identityChanged = Boolean(previousIdentity && identity !== previousIdentity)
     if (identityChanged || !identity) {
+      profile.reset()
       workspace.reset()
       realtime.clear()
     }
     if (identity) {
+      void profile.load()
       void workspace.refresh()
       void realtime.connect()
     }

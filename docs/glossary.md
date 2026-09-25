@@ -10,6 +10,7 @@ if a term changes meaning, update the glossary before touching code.
 | State | The human-reported health status of a device, from the enum `ok` / `warning` / `alert` (lowercase; stored and compared exactly). |
 | Operator | Field personnel who physically enter a datacenter and report the state of each Device. Human-in-the-loop is the system's core: Devices have no self-reporting. |
 | Admin | Company employee who watches the dashboard and acts on Device States reported by Operators, including acknowledging Alerts. An Admin is not a field reporter, but may use approved State-reporting controls. |
+| User Profile | A read-only presentation of the authenticated user's own account identity and access metadata; it is not a separate account or a user directory. |
 | Alert | A dashboard record raised when a Device enters `warning` / `alert` State. |
 | Open Alert | An Alert that has not been acknowledged by an Admin. |
 | Acknowledgment | The admin action that marks an Alert as acknowledged and attempts to reset the Device to `ok`. The acknowledgment can succeed even when the reset fails. |
