@@ -6,12 +6,32 @@
 // NUXT_*_API_URL vars to the compose service names (see frontend/dockerfile).
 const authApi = process.env.NUXT_AUTH_API_URL ?? 'http://localhost:8000'
 const devicesApi =
-  process.env.NUXT_DEVICES_API_URL ?? 'http://localhost:8001'
+  process.env.NUXT_DEVICES_API_URL ?? 'http://localhost:8004'
 const dashboardApi =
   process.env.NUXT_DASHBOARD_API_URL ?? 'http://localhost:8002'
 
 export default defineNuxtConfig({
   modules: ['@nuxt/ui'],
+  css: ['~/assets/css/main.css'],
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark',
+  },
+  app: {
+    head: {
+      title: 'Unplugd',
+      titleTemplate: '%s · Unplugd',
+      htmlAttrs: { lang: 'en' },
+      meta: [
+        {
+          name: 'description',
+          content: 'Human-reported datacenter monitoring for calm, accountable operations.',
+        },
+        { name: 'theme-color', content: '#080D16' },
+      ],
+      link: [{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+    },
+  },
   // SPA mode: access tokens live in memory and the refresh cookie is
   // HttpOnly, so there is nothing useful to render server-side.
   ssr: false,

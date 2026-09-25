@@ -7,6 +7,11 @@ import type { NitroFetchOptions, NitroFetchRequest } from 'nitropack'
 export const useApi = () => {
   const auth = useAuth()
 
+  const sessionKey = () => {
+    const user = auth.user.value
+    return user ? `${user.username}|${user.role}|${user.dcId ?? ''}` : ''
+  }
+
   const apiFetch = async <T>(
     path: string,
     opts: NitroFetchOptions<NitroFetchRequest> = {},
@@ -22,11 +27,20 @@ export const useApi = () => {
         },
       })
 
+    const requestSession = sessionKey()
+    const requestEpoch = auth.sessionEpoch.value
+    const sessionIsCurrent = () =>
+      sessionKey() === requestSession && auth.sessionEpoch.value === requestEpoch
     try {
-      return await withAuth()
+      const result = await withAuth()
+      if (!sessionIsCurrent()) throw new Error('Session changed')
+      return result
     } catch (err: any) {
+      if (!sessionIsCurrent()) throw err
       if (err?.response?.status === 401 && (await auth.refresh())) {
-        return await withAuth()
+        const result = await withAuth()
+        if (!sessionIsCurrent()) throw new Error('Session changed')
+        return result
       }
       throw err
     }

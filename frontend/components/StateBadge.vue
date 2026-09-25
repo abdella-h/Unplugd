@@ -3,15 +3,22 @@ import type { DeviceState } from '~/types/api'
 
 const props = defineProps<{ state: DeviceState }>()
 
-const colors = {
-  ok: 'green',
-  warning: 'amber',
-  alert: 'red',
+const presentation = {
+  ok: { color: 'green', icon: 'i-heroicons-check-circle', label: 'OK' },
+  warning: { color: 'amber', icon: 'i-heroicons-exclamation-triangle', label: 'Warning' },
+  alert: { color: 'red', icon: 'i-heroicons-exclamation-octagon', label: 'Alert' },
 } as const
 
-const color = computed(() => colors[props.state])
+const current = computed(() => presentation[props.state])
 </script>
 
 <template>
-  <UBadge :color="color" variant="subtle">{{ state }}</UBadge>
+  <UBadge
+    :color="current.color"
+    variant="subtle"
+    :icon="current.icon"
+    class="gap-1 font-semibold capitalize"
+  >
+    {{ current.label }}
+  </UBadge>
 </template>

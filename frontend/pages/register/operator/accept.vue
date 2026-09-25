@@ -1,19 +1,15 @@
 <script setup lang="ts">
+definePageMeta({ layout: 'auth' })
+
 const route = useRoute()
 const toast = useToast()
-
 const token = computed(() => String(route.query.token ?? ''))
 const pending = ref(false)
 const error = ref<string | null>(null)
-
-const state = reactive({
-  username: '',
-  password: '',
-  first_name: '',
-  last_name: '',
-})
+const state = reactive({ username: '', password: '', first_name: '', last_name: '' })
 
 async function onSubmit() {
+  if (pending.value || !token.value) return
   pending.value = true
   error.value = null
   try {
@@ -27,10 +23,10 @@ async function onSubmit() {
         last_name: state.last_name || null,
       },
     })
-    toast.add({ title: 'Account activated', color: 'green' })
+    toast.add({ title: 'Operator account activated', color: 'green' })
     await navigateTo('/login')
-  } catch (err) {
-    error.value = errorDetail(err, 'Invite is invalid, expired, or already used')
+  } catch (caught) {
+    error.value = errorDetail(caught, 'Invite is invalid, expired, or already used')
   } finally {
     pending.value = false
   }
@@ -38,36 +34,32 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center">
-    <UCard class="w-full max-w-md">
-      <template #header>
-        <h1 class="text-lg font-semibold">Activate operator account</h1>
-      </template>
-      <UAlert
-        v-if="!token"
-        color="red"
-        variant="subtle"
-        title="Missing invite token"
-        description="Open the invite link you were sent."
-      />
-      <UForm v-else :state="state" class="space-y-4" @submit="onSubmit">
-        <UFormGroup label="Username" name="username" required>
-          <UInput v-model="state.username" required minlength="3" />
+  <UCard class="monitor-panel" :ui="{ background: 'bg-white dark:bg-[#101827]' }">
+    <template #header>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-primary-700 dark:text-primary-300">Operator access</p>
+        <h1 class="mt-2 text-2xl font-semibold tracking-tight">Activate your account</h1>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Choose credentials for the Operator account connected to your invite.</p>
+      </div>
+    </template>
+    <UAlert v-if="!token" color="red" variant="subtle" title="Missing invite token" description="Open the invite link you were sent." />
+    <form v-else class="monitor-form space-y-4" @submit.prevent="onSubmit">
+      <UFormGroup label="Username" name="username" required>
+        <UInput v-model="state.username" autocomplete="username" required minlength="3" />
+      </UFormGroup>
+      <UFormGroup label="Password" name="password" required>
+        <UInput v-model="state.password" type="password" autocomplete="new-password" required minlength="8" />
+      </UFormGroup>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <UFormGroup label="First name" name="first_name">
+          <UInput v-model="state.first_name" autocomplete="given-name" />
         </UFormGroup>
-        <UFormGroup label="Password" name="password" required>
-          <UInput v-model="state.password" type="password" required minlength="8" />
+        <UFormGroup label="Last name" name="last_name">
+          <UInput v-model="state.last_name" autocomplete="family-name" />
         </UFormGroup>
-        <div class="grid grid-cols-2 gap-4">
-          <UFormGroup label="First name" name="first_name">
-            <UInput v-model="state.first_name" />
-          </UFormGroup>
-          <UFormGroup label="Last name" name="last_name">
-            <UInput v-model="state.last_name" />
-          </UFormGroup>
-        </div>
-        <UAlert v-if="error" color="red" variant="subtle" :title="error" />
-        <UButton type="submit" block :loading="pending">Activate</UButton>
-      </UForm>
-    </UCard>
-  </div>
+      </div>
+      <UAlert v-if="error" color="red" variant="subtle" :title="error" />
+      <UButton type="submit" block size="lg" :loading="pending">Activate Operator account</UButton>
+    </form>
+  </UCard>
 </template>

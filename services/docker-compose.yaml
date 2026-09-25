@@ -55,7 +55,7 @@ services:
     devices-service:
         build: ./devices
         ports:
-            - "8001:8000"
+            - "8004:8000"
         environment:
             DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@devices_db:5432/${DEVICES_DB_NAME:-devices_db}
             SECRET_KEY: ${SECRET_KEY}
