@@ -137,7 +137,7 @@ The top bar contains only persistent context that applies across pages:
 - fixed Datacenter context;
 - last successful data-fetch time;
 - Realtime channel state for Admins;
-- user menu with explicit role and logout action.
+- user menu with full name (username fallback), explicit role, Profile link, and logout action.
 
 It does not contain global search in this release. A missing Realtime channel is
 not shown to Operators because they are not permitted to subscribe.
@@ -150,8 +150,9 @@ Role labels are explicit:
 - **Scoped Admin**
 - **Operator**
 
-Scoped users also see their assigned Datacenter. Username remains the primary
-identity because the current session does not guarantee profile metadata.
+Scoped users also see their assigned Datacenter. The authenticated user's full
+name is preferred when available, with username as the stable fallback. Both
+identity surfaces link to the read-only Profile page.
 
 ## Visual identity
 
@@ -316,6 +317,14 @@ Login, first-run setup, and Operator acceptance use a shared split layout.
 - Correct loading, validation, request failure, and completion states.
 - First-run status-request failure renders an actionable state rather than an
   empty card.
+
+### Profile
+
+`/profile` is available to authenticated Admins and Operators. It presents the
+signed-in account's first and last name, username, email, explicit role,
+Datacenter scope, active status, and last-login time. The view is read-only;
+account editing, password changes, and a user directory are outside this
+release. Initial loading, refresh, and retry states remain contextual.
 
 ## Live monitoring behavior
 

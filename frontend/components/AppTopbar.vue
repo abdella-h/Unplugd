@@ -4,6 +4,7 @@ const emit = defineEmits<{
 }>()
 
 const auth = useAuth()
+const profile = useUserProfile()
 const route = useRoute()
 const colorMode = useColorMode()
 const workspace = useWorkspace()
@@ -13,7 +14,6 @@ const userMenuOpen = ref(false)
 
 const title = computed(() => String(route.meta.title ?? 'Overview'))
 const isDark = computed(() => colorMode.value === 'dark')
-const initials = computed(() => auth.user.value?.username?.slice(0, 2).toUpperCase() ?? 'U')
 const clock = ref(Date.now())
 let freshnessTimer: ReturnType<typeof setInterval> | undefined
 
@@ -50,8 +50,9 @@ const realtimeColor = computed(() => {
 
 const userItems = computed(() => [
   [
-    { label: auth.user.value?.username ?? 'User', disabled: true },
-    { label: workspace.roleLabel.value, disabled: true },
+    { label: profile.displayName.value || 'User', disabled: true },
+    { label: 'Profile', icon: 'i-heroicons-user-circle', to: '/profile' },
+    { label: profile.roleLabel.value, disabled: true },
     { label: workspace.scopeLabel.value, disabled: true },
     { label: 'Log out', icon: 'i-heroicons-arrow-right-start-on-rectangle', click: () => auth.logout() },
   ],
@@ -134,8 +135,8 @@ function toggleTheme() {
           aria-haspopup="true"
           :aria-expanded="userMenuOpen"
         >
-          <UAvatar :alt="auth.user.value?.username ?? 'User'" :text="initials" size="sm" />
-          <span class="hidden max-w-28 truncate text-sm font-medium sm:inline">{{ auth.user.value?.username }}</span>
+          <UAvatar :alt="profile.displayName.value || 'User'" :text="profile.initials.value" size="sm" />
+          <span class="hidden max-w-28 truncate text-sm font-medium sm:inline">{{ profile.displayName.value }}</span>
           <UIcon name="i-heroicons-chevron-down" class="hidden h-3.5 w-3.5 sm:block" />
         </UButton>
       </UDropdown>

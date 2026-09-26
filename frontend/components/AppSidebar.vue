@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const auth = useAuth()
 const workspace = useWorkspace()
+const profile = useUserProfile()
 const mobileOpen = useState<boolean>('shell:mobile-navigation-open', () => false)
 const isDesktop = ref(false)
 const sidebarElement = ref<HTMLElement | null>(null)
@@ -200,16 +201,29 @@ function handleNavigationKeydown(event: KeyboardEvent) {
         </nav>
 
         <div class="border-t border-[var(--monitor-border)] p-3">
-          <div class="flex items-center gap-3 rounded-md px-2 py-2">
-            <UAvatar
-              :alt="auth.user.value?.username ?? 'User'"
-              :text="auth.user.value?.username?.slice(0, 2).toUpperCase() ?? 'U'"
-              size="sm"
-            />
-            <div v-if="!workspace.sidebarCollapsed.value" class="min-w-0 flex-1">
-              <p class="truncate text-sm font-semibold">{{ auth.user.value?.username }}</p>
-              <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ workspace.roleLabel.value }}</p>
-            </div>
+          <div class="flex items-center gap-2 rounded-md px-2 py-2">
+            <UTooltip
+              text="Profile"
+              :disabled="!workspace.sidebarCollapsed.value"
+              placement="right"
+            >
+              <NuxtLink
+                to="/profile"
+                class="flex min-w-0 flex-1 items-center gap-3 rounded-md p-1 hover:bg-slate-100 dark:hover:bg-slate-800"
+                :aria-label="`Open profile for ${profile.displayName.value || 'user'}`"
+                @click="closeMobile"
+              >
+                <UAvatar
+                  :alt="profile.displayName.value || 'User'"
+                  :text="profile.initials.value"
+                  size="sm"
+                />
+                <div v-if="!workspace.sidebarCollapsed.value" class="min-w-0">
+                  <p class="truncate text-sm font-semibold">{{ profile.displayName.value || auth.user.value?.username }}</p>
+                  <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ profile.roleLabel.value }}</p>
+                </div>
+              </NuxtLink>
+            </UTooltip>
             <UButton
               v-if="!workspace.sidebarCollapsed.value"
               icon="i-heroicons-arrow-right-start-on-rectangle"
@@ -217,7 +231,7 @@ function handleNavigationKeydown(event: KeyboardEvent) {
               variant="ghost"
               size="xs"
               square
-              :aria-label="`Log out ${auth.user.value?.username ?? 'user'}`"
+              :aria-label="`Log out ${profile.displayName.value || auth.user.value?.username || 'user'}`"
               @click="auth.logout()"
             />
           </div>
