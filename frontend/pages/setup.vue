@@ -2,22 +2,21 @@
 definePageMeta({ layout: 'auth' })
 
 const toast = useToast()
-const needsSetup = ref<boolean | null>(null)
-const checkingSetup = ref(true)
+const setup = useSetup()
+const { needsSetup, markSetupComplete } = setup
 const pending = ref(false)
 const error = ref<string | null>(null)
+const checkingSetup = computed(
+  () => needsSetup.value === null && error.value === null,
+)
 const state = reactive({ first_name: '', last_name: '', username: '', email: '', password: '' })
 
 async function checkStatus() {
-  checkingSetup.value = true
   error.value = null
   try {
-    const response = await $fetch<{ needs_setup: boolean }>('/api/auth/setup/status')
-    needsSetup.value = response.needs_setup
+    await setup.checkStatus()
   } catch (caught) {
     error.value = errorDetail(caught, 'Could not reach the auth service')
-  } finally {
-    checkingSetup.value = false
   }
 }
 
@@ -36,6 +35,7 @@ async function onSubmit() {
         password: state.password,
       },
     })
+    markSetupComplete()
     toast.add({ title: 'Admin account created', color: 'green' })
     await navigateTo('/login')
   } catch (caught) {
@@ -45,7 +45,9 @@ async function onSubmit() {
   }
 }
 
-onMounted(checkStatus)
+onMounted(() => {
+  if (needsSetup.value === null) void checkStatus()
+})
 </script>
 
 <template>
